@@ -22,26 +22,30 @@ namespace AzureFunctionsMlbCSharp
             string? team = req.Query["team"];
             var response = req.CreateResponse();
 
+            _logger.LogInformation($"HTTP trigger function processed a request for {team} schedule.");
+
             if (!string.IsNullOrEmpty(team) && IsValidTeam(team))
             {
-                _logger.LogInformation($"C# HTTP trigger function processed a request for {team}");
-
                 var teamSchedule = await _mlbService.GetTeamSchedule(team);
 
                 if (teamSchedule != null)
                 {
                     response.StatusCode = HttpStatusCode.OK;
+
                     await response.WriteAsJsonAsync(teamSchedule);
+
+                    _logger.LogInformation($"Successfully processed request.");
                 }
             }
             else
             {
-                var errorMessage = "Missing or incorrect team abbreviation";
-
-                _logger.LogInformation($"{errorMessage}: {team}.");
-
+                var errorMessage = "Error processing request. Missing or incorrect team abbreviation.";
                 response.StatusCode = HttpStatusCode.BadRequest;
-                await response.WriteStringAsync($"{errorMessage}. Please try again.");
+
+                // Add in team abbreviation list here
+                await response.WriteStringAsync($"{errorMessage} Please try again.");
+
+                _logger.LogInformation(errorMessage);
             }
 
             return response;
