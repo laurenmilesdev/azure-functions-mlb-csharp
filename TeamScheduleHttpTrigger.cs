@@ -20,34 +20,46 @@ namespace AzureFunctionsMlbCSharp
         public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req)
         {
             string? team = req.Query["team"];
+            string? season = req.Query["season"];
             var response = req.CreateResponse();
 
             _logger.LogInformation($"HTTP trigger function processed a request for {team} schedule.");
 
             if (!string.IsNullOrEmpty(team) && IsValidTeam(team))
             {
-                var teamSchedule = await _mlbService.GetTeamSchedule(team);
+                var teamSchedule = await _mlbService.GetTeamSchedule(team, season);
 
                 if (teamSchedule != null)
                 {
-                    response.StatusCode = HttpStatusCode.OK;
-
-                    await response.WriteAsJsonAsync(teamSchedule);
-
-                    _logger.LogInformation($"Successfully processed request.");
+                    await HandleResponse(response, HttpStatusCode.OK, "Successfully processed request.", teamSchedule);
+                }
+                else
+                {
+                    await HandleResponse(response, HttpStatusCode.BadRequest, "There was an issue processing request.");
                 }
             }
             else
             {
-                var errorMessage = "Error processing request. Missing or incorrect team abbreviation.";
-                response.StatusCode = HttpStatusCode.BadRequest;
-
-                await response.WriteStringAsync($"{errorMessage} Please try again.");
-
-                _logger.LogInformation(errorMessage);
+                await HandleResponse(response, HttpStatusCode.BadRequest, "Error processing request. Missing or incorrect team abbreviation.");
             }
 
             return response;
+        }
+
+        private async Task HandleResponse(HttpResponseData response, HttpStatusCode status, string message, TeamSchedule? schedule = null)
+        {
+
+            _logger.LogInformation(message);
+            response.StatusCode = status;
+
+            if (schedule != null)
+            {
+                await response.WriteAsJsonAsync(schedule);
+            }
+            else
+            {
+                await response.WriteStringAsync(message);
+            }
         }
 
         private static bool IsValidTeam(string team)
