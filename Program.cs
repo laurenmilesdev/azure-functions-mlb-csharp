@@ -1,34 +1,28 @@
+using AzureFunctionsMlbCSharp;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace AzureFunctionsMlbCSharp
+string RapidApiMlbBaseUrl = Environment.GetEnvironmentVariable("X_RAPIDAPI_HOST") ?? "";
+
+void ConfigureServices(HostBuilderContext builder, IServiceCollection services)
 {
-    public class Program
-    {
-        public static void Main()
+    services.AddApplicationInsightsTelemetryWorkerService();
+    services.ConfigureFunctionsApplicationInsights();
+    services
+        .AddHttpClient("mlb", (provider, client) =>
         {
-            var builder = new HostBuilder()
-                .ConfigureFunctionsWorkerDefaults()
-                .ConfigureServices(ConfigureServices);
-
-            var host = builder.Build();
-
-            host.Run();
-        }
-
-        private static readonly string RapidApiMlbBaseUrl = Environment.GetEnvironmentVariable("X_RAPIDAPI_HOST") ?? "";
-
-        static void ConfigureServices(HostBuilderContext builder, IServiceCollection services)
-        {
-            services
-                .AddHttpClient("mlb", (provider, client) =>
-                {
-                    client.BaseAddress = new Uri($"https://{RapidApiMlbBaseUrl}");
-                    client.DefaultRequestHeaders.Add("Accept", "application/json");
-                    client.DefaultRequestHeaders.Add("X-RapidAPI-Key", Environment.GetEnvironmentVariable("X_RAPIDAPI_KEY"));
-                    client.DefaultRequestHeaders.Add("X-RapidAPI-Host", RapidApiMlbBaseUrl);
-                });
-            services.AddScoped<IMlbService, MlbService>();
-        }
-    }
+            client.BaseAddress = new Uri($"https://{RapidApiMlbBaseUrl}");
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+            client.DefaultRequestHeaders.Add("X-RapidAPI-Key", Environment.GetEnvironmentVariable("X_RAPIDAPI_KEY"));
+            client.DefaultRequestHeaders.Add("X-RapidAPI-Host", RapidApiMlbBaseUrl);
+        });
+    services.AddScoped<IMlbService, MlbService>();
 }
+
+var host = new HostBuilder()
+    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureServices(ConfigureServices)
+    .Build();
+
+host.Run();
