@@ -42,7 +42,6 @@ namespace AzureFunctionsMlbCSharp
                 var errorMessage = "Error processing request. Missing or incorrect team abbreviation.";
                 response.StatusCode = HttpStatusCode.BadRequest;
 
-                // Add in team abbreviation list here
                 await response.WriteStringAsync($"{errorMessage} Please try again.");
 
                 _logger.LogInformation(errorMessage);
